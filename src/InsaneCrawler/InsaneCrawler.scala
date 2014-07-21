@@ -17,7 +17,8 @@ object InsaneCrawler {
 	val base_url = "http://38.103.161.147/forum/"
   
 	val use_proxy = true
-	val mode = "down"
+//	val mode = "down"
+	val mode = "see"
 	
 	var forum_ids = Map("YM"->230,"WM"->143)
 	val wtfdir = "test"
@@ -32,12 +33,15 @@ object InsaneCrawler {
 	
 	def main(args: Array[String]) {
 	  	val start = System.nanoTime()
-	  	down_imgs_torrents()
+	  	if(mode == "see"){
+	  	  get_all_analytics()
+	  	}else if(mode == "down"){
+	  	  down_imgs_torrents()
+	  	}
 	  	println("Elapsed time:"+(System.nanoTime()-start)/1000000000+"s")
 	}
 	
 	def down_imgs_torrents(){
-	  
 		install_proxy()
 		val base_forum_url = base_url + "forum-%d-%d.html"
 		
@@ -76,6 +80,44 @@ object InsaneCrawler {
 	    }
 	}
 	
+	def get_all_analytics(){
+	  	val receiver = self
+	  	for((k,forum_id) <- forum_ids){
+	  	  actor{receiver ! down_topics_and_store(forum_id)}
+	  	}
+	  	for((k,forum_id) <- forum_ids){
+	  	  receiveWithin(3600000){
+	  	    case result:String=>
+	  	      println(result)
+	  	  	case TIMEOUT=>
+	    	  println("TIME OUT!")
+	  	  }
+	  	}
+	}
+	
+	def down_topics_and_store(forum:Int) = {
+	  	install_proxy()
+		val base_forum_url = base_url + "forum-%d-%d.html"
+		
+		val pages = Range(1,1024)
+		var topics = Map[String,Topic]()
+		for(page <- pages.toList){
+			topics = topics ++ get_links_from_page(base_forum_url.format(forum,page))
+		}
+	  	
+	  	var topic_list = List[Topic]()
+	  	for((k,topic) <- topics){
+	  	  topic_list = topic :: topic_list 
+	  	}
+	  	val sortedList = topic_list.sortWith((x,y)=>x.star>y.star)
+	  	val writer = new PrintWriter(new File(forum+".txt"))
+	  	for(t<- sortedList){
+	  	    writer.write(t.toString+"\n")
+	  	}
+	  	writer.close()
+	  	"OK"
+	}
+	
 	def get_from_pages(base_forum_url:String, forum_id:Int, begin:Int, end:Int)={
 		println("actor start:"+forum_id+","+begin+"-"+end)
 		var topics = Map[String,Topic]()
@@ -90,7 +132,7 @@ object InsaneCrawler {
 	def get_links_from_page(url:String)={
 		println("GET PAGE:"+url)
 		val topics = Map[String,Topic]()
-		val content = io.Source.fromURL(url,"gbk").mkString
+		val content = get_content_from_url(url)
 		val topics_html = TopicsSymbol.findAllMatchIn(content).toList
 		//所有主题
 		for (h <- topics_html){
@@ -220,8 +262,9 @@ object InsaneCrawler {
 	  }
 	  result
 	}
+	
 }
 
 class Topic(val title:String,val url:String,val star:Int,val comment:Int,val view:Int,val time:String){
-  override def toString():String = "TITLE:"+title+",URL:"+url+",STAR:"+star+",COMMENT:"+comment+",VIEW:"+view+",TIME:"+time
+  override def toString():String = star+","+url+","+title+","+comment+","+view+","+time
 }
