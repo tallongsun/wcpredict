@@ -134,20 +134,23 @@ object InsaneCrawler {
 		val topics = Map[String,Topic]()
 		val content = get_content_from_url(url)
 		val topics_html = TopicsSymbol.findAllMatchIn(content).toList
-		//所有主题
-		for (h <- topics_html){
-		  val matched =PSymbol.findFirstMatchIn(h.matched)
-		  val url = base_url + matched.get.group(1)
-		  val title = matched.get.group(2)
-		  val star = matched.get.group(3).toInt
-		  val comment = matched.get.group(4).toInt
-		  val view = matched.get.group(5).toInt
-		  val time = matched.get.group(6)
-		  val topic = new Topic(title,url,star,comment,view,time)
-		  topics(title) = topic
-		  //println(topics(title))
+		try{
+			//所有主题
+			for (h <- topics_html){
+			  val matched =PSymbol.findFirstMatchIn(h.matched)
+			  val url = base_url + matched.get.group(1)
+			  val title = matched.get.group(2)
+			  val star = matched.get.group(3).toInt
+			  val comment = matched.get.group(4).toInt
+			  val view = matched.get.group(5).toInt
+			  val time = matched.get.group(6)
+			  val topic = new Topic(title,url,star,comment,view,time)
+			  topics(title) = topic
+			  //println(topics(title))
+			}
+		}catch{
+		  case ex:Exception => println("topics_html:"+topics_html+","+ex)
 		}
-		//println(topics.size)
 		
 		if(mode == "down"){
 		  for((k,v) <- topics){
