@@ -11,6 +11,7 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.FileOutputStream
 import java.io.InputStream
+import scala.io.Source
 
 
 object InsaneCrawler {
@@ -18,7 +19,7 @@ object InsaneCrawler {
   
 	val use_proxy = true
 //	val mode = "down"
-	val mode = "see"
+	val mode = "sort"
 	
 	var forum_ids = Map("YM"->230,"WM"->143)
 	val wtfdir = "test"
@@ -37,8 +38,45 @@ object InsaneCrawler {
 	  	  get_all_analytics()
 	  	}else if(mode == "down"){
 	  	  down_imgs_torrents()
+	  	}else{
+	  	  sort_all_topics()
 	  	}
 	  	println("Elapsed time:"+(System.nanoTime()-start)/1000000000+"s")
+	}
+	
+	def sort_all_topics(){
+	  var topicList = List[Topic]()
+	  Source.fromFile("230.txt").getLines.foreach{
+	    line =>
+		  val starEndIndex = line.indexOf(',')
+		  val star = line.substring(0, starEndIndex).toInt
+		  var leftLine = line.substring(starEndIndex+1)
+		  
+		  val urlEndIndex = leftLine.indexOf(',')
+		  val url = leftLine.substring(0, urlEndIndex)
+		  leftLine = leftLine.substring(urlEndIndex+1)
+		  
+		  val timeStartIndex = leftLine.lastIndexOf(',')
+		  val time = leftLine.substring(timeStartIndex+1)
+		  leftLine = leftLine.substring(0, timeStartIndex)
+		  
+		  val viewStartIndex = leftLine.lastIndexOf(',')
+		  val view = leftLine.substring(viewStartIndex+1).toInt
+		  leftLine = leftLine.substring(0, viewStartIndex)
+		  
+  		  val commentStartIndex = leftLine.lastIndexOf(',')
+		  val comment = leftLine.substring(commentStartIndex+1).toInt
+		  val title = leftLine.substring(0, commentStartIndex)
+		  
+		  val topic = new Topic(title,url,star,comment,view,time)
+		  topicList = topic :: topicList
+	  }
+  	  val sortedList = topicList.sortWith((x,y)=>x.view>y.view)
+  	  val writer = new PrintWriter(new File("230view.txt"))
+  	  for(t<- sortedList){
+  	    writer.write(t.toString+"\n")
+  	  }
+  	  writer.close()
 	}
 	
 	def down_imgs_torrents(){

@@ -1,5 +1,7 @@
 *.class
 *.log
+143*.txt
+230*.txt
 
 # sbt specific
 .cache/
@@ -16,3 +18,4 @@ test/
 # Scala-IDE specific
 .scala_dependencies
 .worksheet
+.cache
